@@ -12,8 +12,13 @@ This project is a backend service built with Node.js and TypeScript, containeriz
 
 Clone the repository:
    ```
-   git clone [your-repo-url]
+   git clone https://github.com/CorentinDeblock/BackendBasicSkills
    cd BasicSkillBackend
+   ```
+
+Create a `.env` file with the following variables:
+   ```
+   FRONTEND_PROJECT=C:/Users/coren/Documents/git/BasicSkillFrontend/src/prisma
    ```
 
 ### Development Setup
@@ -89,6 +94,14 @@ npm run docker-migrate-resolve
 ```
 
 Resolve the migrations. Be aware that the docker container need to be running.
+
+### Generate the frontend prisma type definitions
+
+```
+npm run generate-frontend
+```
+
+Be aware that the docker container need to be running.
 
 ## Available Scripts
 - `npm test`: Runs the tests
