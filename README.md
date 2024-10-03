@@ -64,18 +64,6 @@ This is the best way to initialize everything and seed the database without havi
 npm run docker-test
 ```
 
-## Project Structure
-BasicSkillBackend/
-├── src/
-│ ├── index.ts
-│ └── [other source files]
-├── Dockerfile
-├── docker-compose.yaml
-├── nodemon.json
-├── package.json
-├── tsconfig.json
-└── README.md
-
 ## Available Scripts
 - `npm test`: Runs the tests
 - `npm run dev`: Starts the development server with hot-reloading
