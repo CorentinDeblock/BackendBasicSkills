@@ -3,18 +3,48 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "start": "ts-node src/index.ts",
+    "dev": "nodemon --legacy-watch",
+    "seed": "ts-node prisma/seed.ts",
+    "docker-dev": "docker-compose -f docker-compose.base.yaml -f docker-compose.dev.yaml",
+    "docker-prod": "docker-compose -f docker-compose.base.yaml -f docker-compose.prod.yaml",
+    "docker-init": "npm run docker-dev exec node npx prisma migrate dev --name init",
+    "docker-seed": "npm run docker-dev exec node npm run seed",
+    "docker-init-and-seed": "npm run docker-init && npm run docker-seed",
+    "docker-test": "npm run docker-dev exec node npm run test"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@babel/core": "^7.25.7",
+    "@babel/preset-env": "^7.25.7",
+    "@babel/preset-typescript": "^7.25.7",
+    "@eslint/js": "^9.11.1",
+    "@faker-js/faker": "^9.0.3",
+    "@jest/globals": "^29.7.0",
+    "@types/express": "^5.0.0",
+    "@types/jest": "^29.5.13",
+    "@types/node": "^22.7.4",
+    "babel-jest": "^29.7.0",
+    "eslint": "^9.11.1",
+    "eslint-plugin-jest": "^28.8.3",
+    "globals": "^15.10.0",
     "jest": "^29.7.0",
-    "typescript": "^5.6.2"
+    "nodemon": "^3.1.7",
+    "prisma": "^5.20.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2",
+    "typescript-eslint": "^8.8.0"
   },
   "dependencies": {
+    "@prisma/client": "^5.20.0",
+    "@types/lodash": "^4.17.9",
     "express": "^4.21.0",
-    "prisma": "^5.20.0"
+    "lodash": "^4.17.21",
+    "yargs": "^17.7.2"
   }
 }

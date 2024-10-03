@@ -1,0 +1,5 @@
+services:
+  node:
+    command: npm start
+    environment:
+      NODE_ENV: production
