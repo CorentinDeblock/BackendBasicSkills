@@ -16,8 +16,8 @@ async function main() {
         })),
     });
 
-    // Get 3 random users
-    const usersSample = _.sampleSize(users, 3)
+    // Get 100 random users
+    const usersSample = _.times(100, () => _.sample(users))
 
     // Create a article for each user
     const articles = await Promise.all(usersSample.map(async (user) => 
@@ -25,7 +25,7 @@ async function main() {
             data: {
                 title: faker.lorem.sentence(),
                 content: faker.lorem.paragraph(),
-                authorId: user.id
+                authorId: user!.id
             }
         })
     ));
@@ -41,7 +41,7 @@ async function main() {
                 data: {
                     userId: user.id,
                     articleId: article.id,
-                    like: Object.values(OpinionType)[
+                    opinion: Object.values(OpinionType)[
                         faker.number.int({ min: 0, max: 1 })
                     ],
                 },
@@ -52,15 +52,11 @@ async function main() {
     console.log("Database seeded successfully")
 }
 
-function seed() {
-    main()
-        .catch((e) => {
-            console.error(e)
-            process.exit(1)
-        })
-        .finally(async () => {
-            await prisma.$disconnect()
-        })
-}
-
-export default seed;
+main()
+    .catch((e) => {
+        console.error(e)
+        process.exit(1)
+    })
+    .finally(async () => {
+        await prisma.$disconnect()
+    })

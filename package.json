@@ -12,7 +12,11 @@
     "docker-init": "npm run docker-dev exec node npx prisma migrate dev --name init",
     "docker-seed": "npm run docker-dev exec node npm run seed",
     "docker-init-and-seed": "npm run docker-init && npm run docker-seed",
-    "docker-test": "npm run docker-dev exec node npm run test"
+    "docker-test": "npm run docker-dev exec node npm run test",
+    "clear-logs": "rmdir logs /s /q && mkdir logs",
+    "docker-migrate": "npm run docker-dev exec node npx prisma migrate",
+    "docker-migrate-reset": "npm run docker-dev exec node npx prisma migrate reset",
+    "docker-migrate-resolve": "npm run docker-dev exec node npx prisma migrate resolve"
   },
   "keywords": [],
   "author": "",
@@ -45,6 +49,7 @@
     "@types/lodash": "^4.17.9",
     "express": "^4.21.0",
     "lodash": "^4.17.21",
-    "yargs": "^17.7.2"
+    "moment": "^2.30.1",
+    "winston": "^3.14.2"
   }
 }

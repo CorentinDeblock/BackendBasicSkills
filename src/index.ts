@@ -1,7 +1,12 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, User } from '@prisma/client';
 import path from 'path';
 import { AddressInfo } from 'net';
+import { API } from './iapi';
+import UserAPI from './api/userAPI';
+import ArticleAPI from './api/articleAPI';
+import logger from './logger';
+import settings from './settings';
 
 // Create a Prisma client
 const prisma = new PrismaClient();
@@ -9,8 +14,12 @@ const prisma = new PrismaClient();
 // Create an Express application
 const app = express();
 
-// Get the port from the environment variables, if not present, use 3000
-const PORT = process.env.PORT || 3000;
+app.use(
+    new API()
+        .addAPI(new UserAPI())
+        .addAPI(new ArticleAPI())
+        .apply()
+);
 
 // Middleware to parse JSON bodies
 app.use(express.json());
@@ -23,13 +32,14 @@ app.get('/', (req, res) => {
     res.send('Hello World');
 });
 
-const server = app.listen(PORT, () => {
+
+const server = app.listen(settings.port, () => {
     // Get the address of the server
     const address = server.address();
 
     // If address is null, only show the port
     if(address === null) {
-        console.log(`Server running on port ${PORT}`);
+        console.log(`Server running on port ${settings.port}`);
         return;
     }
 
