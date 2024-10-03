@@ -104,9 +104,6 @@ Resolve the migrations. Be aware that the docker container need to be running.
 - `npm run docker-migrate`: Runs the migrations in the docker container
 - `npm run docker-migrate-reset`: Resets the migrations in the docker container
 - `npm run docker-migrate-resolve`: Resolves the migrations in the docker container
-- `npm run clear-logs-windows`: Clear the logs in the docker container (Windows)
-- `npm run clear-logs-linux`: Clear the logs in the docker container (Linux)
-- `npm run generate-frontend`: Generate the frontend prisma type definitions from the schema
 
 ## Environment Variables
 
@@ -119,8 +116,6 @@ Resolve the migrations. Be aware that the docker container need to be running.
   json web token
   - `LOG_DATA`: Set to 'true' to log the data
   - `VERBOSE`: Set to 'true' to enable verbose logging
-- .env
-  - `FRONTEND_PROJECT`: Set the path to the frontend project for the prisma type definitions generation
 - Database
   - `POSTGRES_DB`: Set the database name
   - `POSTGRES_USER`: Set the database user
