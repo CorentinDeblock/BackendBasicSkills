@@ -7,6 +7,8 @@ import UserAPI from './api/userAPI';
 import ArticleAPI from './api/articleAPI';
 import logger from './logger';
 import settings from './settings';
+import AssetsAPI from './api/assetsAPI';
+import OpinionAPI from './api/opinionAPI';
 
 // Create a Prisma client
 const prisma = new PrismaClient();
@@ -18,6 +20,8 @@ app.use(
     new API()
         .addAPI(new UserAPI())
         .addAPI(new ArticleAPI())
+        .addAPI(new AssetsAPI())
+        .addAPI(new OpinionAPI())
         .apply()
 );
 
@@ -31,7 +35,6 @@ app.use('/assets', express.static(path.join(__dirname, '..', 'assets')));
 app.get('/', (req, res) => {
     res.send('Hello World');
 });
-
 
 const server = app.listen(settings.port, () => {
     // Get the address of the server

@@ -5,7 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
@@ -29,10 +29,10 @@ model Asset {
 }
 
 model User {
-  id        String     @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
   password  String
-  email     String     @unique
+  email     String    @unique
   avatar    Asset?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -60,8 +60,8 @@ model Article {
   id        String    @id @default(uuid())
   title     String
   content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   author    User      @relation(fields: [authorId], references: [id])
   authorId  String
   opinions  Opinion[]
