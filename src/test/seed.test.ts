@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -26,9 +26,9 @@ test("Get all articles", async () => {
 test("Get all opinions", async () => {
     const opinions = await prisma.opinion.findMany();
     expect(opinions.length).toBeGreaterThan(0); // Should not be empty
-    
+
     opinions.forEach((opinion) => {
-        let opinionString = `Opinion: ${opinion.id}\n\tLike: ${opinion.like}\n\tUser: ${opinion.userId}\n\tArticle: ${opinion.articleId}`;
+        let opinionString = `Opinion: ${opinion.id}\n\tLike: ${opinion.opinionType}\n\tUser: ${opinion.userId}\n\tArticle: ${opinion.articleId}`;
         console.log(opinionString);
     });
 });

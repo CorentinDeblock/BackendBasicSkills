@@ -130,8 +130,7 @@ Be aware that the docker container need to be running.
   - `JWT_SECRET`: Set the secret for the json web token
   - `JWT_EXPIRES_IN`: Set the expiration time for the
   json web token
-  - `LOG_DATA`: Set to 'true' to log the data
-  - `VERBOSE`: Set to 'true' to enable verbose logging
+  - `LOG_LEVEL`: Set the log level (debug, info, warn, error, fatal)
 - .env
   - `FRONTEND_PROJECT`: Set the path to the frontend project for the prisma type definitions generation
 - Database

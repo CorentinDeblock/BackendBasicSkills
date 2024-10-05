@@ -1,5 +1,5 @@
-import { test, expect } from '@jest/globals';
-import * as _ from 'lodash';
+import { test, expect } from "@jest/globals";
+import * as _ from "lodash";
 
 // Currying function via native implementation
 // Specifying return type as any to avoid type errors on the filter method
@@ -7,9 +7,9 @@ import * as _ from 'lodash';
 function curry<T extends any[]>(fn: (...args: T) => any) {
     return function curried(...args: any[]) {
         if (args.length >= fn.length) {
-            return fn(...args as T);
+            return fn(...(args as T));
         }
-        
+
         return (...moreArgs: any[]) => curried(...args, ...moreArgs);
     };
 }
@@ -36,8 +36,14 @@ test("Simple curry function", () => {
     const testArray = ["banana", "apple", "grape", "watermelon", "orange"];
 
     // Testing the curried function
-    expect(testArray.filter(hasElement(["banana", "grape"]))).toEqual(["banana", "grape"]);
+    expect(testArray.filter(hasElement(["banana", "grape"]))).toEqual([
+        "banana",
+        "grape",
+    ]);
 
     // Testing the native curried function
-    expect(testArray.filter(hasElementNative(["banana", "grape"]))).toEqual(["banana", "grape"]);
+    expect(testArray.filter(hasElementNative(["banana", "grape"]))).toEqual([
+        "banana",
+        "grape",
+    ]);
 });

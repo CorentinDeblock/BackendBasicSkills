@@ -8,12 +8,12 @@ class GenerateFrontend {
     generate() {
         const frontendProject = process.env.FRONTEND_PROJECT;
 
-        if(!frontendProject) {
+        if (!frontendProject) {
             throw new Error("FRONTEND_PROJECT is not set in .env");
         }
 
         console.log("Generating all schemas");
-    
+
         const schema = fs.readFileSync("prisma/schema.prisma", "utf8");
 
         frontendProject.split(",").forEach((project) => {
@@ -23,14 +23,17 @@ class GenerateFrontend {
         console.log("All schemas generated");
     }
 
-    private generateSchema(schema: string, frontendProject: string) {        
-        const newSchema = schema.split("\n").map((line) => {
-            if(line.startsWith("generator client {")) {
-                line += `\n  output = "${frontendProject}"`;
-            }
+    private generateSchema(schema: string, frontendProject: string) {
+        const newSchema = schema
+            .split("\n")
+            .map((line) => {
+                if (line.startsWith("generator client {")) {
+                    line += `\n  output = "${frontendProject}"`;
+                }
 
-            return line;
-        }).join("\n");
+                return line;
+            })
+            .join("\n");
 
         fs.writeFileSync("prisma/frontend.prisma", newSchema);
         execSync("npx prisma generate --schema=prisma/frontend.prisma");

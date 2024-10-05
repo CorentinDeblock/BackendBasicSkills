@@ -1,122 +1,162 @@
-import { Prisma, User } from "@prisma/client";
-import { APIException, IApi, APIRequest } from "../iapi";
+import { Asset, PrismaClient, User } from "@prisma/client";
 import express from "express";
-import settings from "../settings";
-import { IDQuery, Body } from "../helpers/apiHelper";
+import { Uploader } from "../utils/httpUtils";
+import { deleteFile, getImagePath } from "../utils/fsUtils";
+import logger from "../logger";
 
-// Define the structure for including related data in User queries
+const router = express.Router();
+const prisma = new PrismaClient();
+
+type UserBody = Omit<User, "id">;
+
 interface UserInclude {
-    articles: boolean,
-    opinions: boolean
+    articles: boolean;
+    opinions: boolean;
+    avatar: boolean;
 }
 
-// UserAPI class extends IApi with specific types for User operations
-class UserAPI extends IApi {
-    constructor() {
-        super("/user");
-    }
+type RequestUserBody = express.Request<{}, {}, UserBody, UserInclude>;
+type RequestUserQuery = express.Request<{ id: string }, {}, {}, UserInclude>;
 
-    // Read all users
-    async readAll(req: APIRequest<{}, UserInclude>, res: express.Response): Promise<void> {
-        if (settings.nodeEnv === "development") {
-            try {
-                // Fetch all users with optional inclusion of articles and likes
-                const users = await this.__prisma.user.findMany({
-                    include: {
-                        articles: req.query.articles,
-                        opinions: req.query.opinions
-                    }
-                });
-
-                this.success(res, users);
-            } catch(e) {
-                throw new APIException("Internal server error", 500, undefined, e);
-            }
-        }
-
-        res.status(404)
-    }
-
-    // Read a single user by ID
-    async read(req: APIRequest<{}, IDQuery<UserInclude>>, res: express.Response): Promise<void> {
-        try {
-            // Fetch a single user by ID with optional inclusion of articles and likes
-            const user = await this.__prisma.user.findUnique({
-                where: { id: req.query.id },
-                include: {
-                    articles: req.query.articles,
-                    opinions: req.query.opinions
-                }
-            });
-            
-            this.success(res, user);
-        } catch(e) {
-            throw new APIException("Internal server error", 500, { id: req.query.id }, e);
-        }
-    }
-
-    // Create a new user
-    async create(req: APIRequest<Body<User>, UserInclude>, res: express.Response): Promise<void> {
-        try {
-            // Create a new user with the provided data
-            const user = await this.__prisma.user.create({
-                data: req.body,
-                include: {
-                    articles: req.query.articles,
-                    opinions: req.query.opinions
-                }
-            });
-
-            this.success(res, user);
-        } catch(e) {
-            if(e instanceof Prisma.PrismaClientKnownRequestError) {
-                switch(e.code) {
-                    case "P2002":
-                        throw new APIException("User with this email already exists", 400, { user: req.body }, e);
-                    default:
-                        throw new APIException("Internal server error", 500, { user: req.body }, e);
-                }
-            }
-            throw new APIException("Internal server error", 500, { user: req.body }, e);
-        }
-    }
-
-    // Update an existing user
-    async update(req: APIRequest<Partial<Body<User>>, IDQuery<UserInclude>>, res: express.Response): Promise<void> {
-        try {
-            // Update a user by ID with the provided data
-            const user = await this.__prisma.user.update({
-                where: { id: req.query.id },
-                data: req.body,
-                include: {
-                    articles: req.query.articles,
-                    opinions: req.query.opinions
-                }
-            });
-            
-            this.success(res, user);
-        } catch(e) {
-            throw new APIException("Internal server error", 500, { id: req.query.id, user: req.body }, e);
-        }
-    }
-
-    // Delete a user
-    async delete(req: APIRequest<{}, IDQuery<UserInclude>>, res: express.Response): Promise<void> {
-        try {
-            // Delete a user by ID
-            await this.__prisma.user.delete({
-                where: { id: req.query.id },
-                include: {
-                    articles: req.query.articles,
-                    opinions: req.query.opinions
-                }
-            });
-
-            this.success(res, { id: req.query.id });
-        } catch(e) {
-            throw new APIException("Internal server error", 500, { id: req.query.id }, e);
-        }
-    }
+function convertQueryToInclude(
+    req: express.Request<any, any, any, UserInclude>
+): UserInclude {
+    return {
+        articles: Boolean(req.query.articles),
+        opinions: Boolean(req.query.opinions),
+        avatar: Boolean(req.query.avatar),
+    };
 }
 
-export default UserAPI;
+async function onCheck(
+    req: express.Request,
+    _: express.Response
+): Promise<Asset | Asset[] | null> {
+    const file = await prisma.asset.findUnique({
+        where: {
+            userId: req.params.id,
+        },
+    });
+
+    return file;
+}
+
+async function onUpdate(
+    req: express.Request<{ id: string }, {}, {}>,
+    _: express.Response
+): Promise<Asset> {
+    const file = await prisma.asset.upsert({
+        where: {
+            userId: req.params.id,
+        },
+        update: {
+            filename: req.file!.filename,
+            path: req.file!.path,
+            mimetype: req.file!.mimetype,
+            size: req.file!.size,
+        },
+        create: {
+            filename: req.file!.filename,
+            path: req.file!.path,
+            mimetype: req.file!.mimetype,
+            size: req.file!.size,
+            userId: req.params.id,
+        },
+    });
+
+    return file;
+}
+
+const uploader = new Uploader(
+    "/assets/images/avatars",
+    onCheck.bind(this),
+    onUpdate.bind(this)
+);
+
+router.post("/upload-avatar/:id", ...uploader.single("avatar"));
+
+router.get("/:id", async (req: RequestUserQuery, res: express.Response) => {
+    if (req.params.id === undefined) {
+        res.status(400).json({ message: "User id is required" });
+        return;
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: req.params.id },
+        include: convertQueryToInclude(req),
+    });
+
+    if (user === null) {
+        res.status(404).json({ message: "User not found" });
+        return;
+    }
+
+    res.json({ message: "Success", data: user });
+});
+
+router.post("/", async (req: RequestUserBody, res: express.Response) => {
+    try {
+        const user = await prisma.user.create({
+            data: req.body,
+            include: convertQueryToInclude(req),
+        });
+
+        if (user === null) {
+            res.status(400).json({ message: "User not created" });
+            return;
+        }
+
+        res.status(201).json({ message: "Success", data: user });
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+router.put("/:id", async (req: RequestUserQuery, res: express.Response) => {
+    if (req.params.id === undefined) {
+        res.status(400).json({ message: "User id is required" });
+        return;
+    }
+
+    const user = await prisma.user.update({
+        where: { id: req.params.id },
+        data: req.body,
+        include: convertQueryToInclude(req),
+    });
+
+    if (user === null) {
+        res.status(404).json({ message: "User not found" });
+        return;
+    }
+
+    res.json({ message: "Success", data: user });
+});
+
+router.delete("/:id", async (req: RequestUserQuery, res: express.Response) => {
+    if (req.params.id === undefined) {
+        res.status(400).json({ message: "User id is required" });
+        return;
+    }
+
+    const user = await prisma.user.delete({
+        where: { id: req.params.id },
+        include: {
+            avatar: true,
+        },
+    });
+
+    if (user === null) {
+        res.status(404).json({ message: "User not found" });
+        return;
+    }
+
+    if (user.avatar !== null) {
+        logger.info(`Deleting avatar ${user.avatar.filename}`);
+
+        await deleteFile(getImagePath("avatars", user.avatar.filename));
+    }
+
+    res.json({ message: "Success" });
+});
+
+export default router;
