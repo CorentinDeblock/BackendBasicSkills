@@ -9,7 +9,13 @@ services:
       - postgres-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis:/data
+    command: redis-server --appendonly yes
   node:
     build:
       context: .
@@ -20,10 +26,13 @@ services:
       JWT_EXPIRES_IN: 1h
       PORT: 3000
       NODE_ENV: development
+      HASH_SALT: 24
+      SESSION_SECRET: mysecretsession
     ports:
       - "3000:3000"
     depends_on:
       - postgres
+      - redis
     volumes:
       - ./:/app
 

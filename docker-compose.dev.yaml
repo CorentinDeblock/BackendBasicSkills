@@ -1,7 +1,8 @@
 services:
-    node:
-        command: npm run dev
-        environment:
-            NODE_ENV: development
-            LOG_LEVEL: debug
-            TZ: Europe/Brussels
+  node:
+    command: npm run dev
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: debug
+      TZ: Europe/Brussels
+      HASH_SALT: 10

@@ -1,68 +1,78 @@
 import passport from "passport";
 import express from "express";
-import { Strategy as LocalStrategy } from "passport-local";
+import {
+  Strategy as JwtStrategy,
+  ExtractJwt,
+  StrategyOptionsWithSecret,
+} from "passport-jwt";
 import { PrismaClient, User } from "@prisma/client";
+import { APIException } from "../utils/apiUtils";
+import logger from "../logger";
+import bcrypt from "bcryptjs";
+import settings from "../settings";
+import jwt from "jsonwebtoken";
+import { disconnect, redis } from "../utils/authUtils";
 
-const route = express.Router();
+const router = express.Router();
+const prisma = new PrismaClient();
 
-route.use(passport.initialize());
-route.use(passport.session());
+async function login(req: express.Request, res: express.Response) {
+  const { email, password } = req.body;
 
-passport.use(
-    new LocalStrategy(async (email, password, done) => {
-        const prisma = new PrismaClient();
+  if (email === undefined || password === undefined) {
+    throw new APIException(
+      req,
+      res,
+      "'email' and 'password' are required, see documentation for more details.",
+      400,
+      undefined,
+      undefined
+    );
+  }
 
-        const user = await prisma.user.findUnique({
-            where: {
-                email,
-                password,
-            },
-        });
+  const user = await prisma.user.findUnique({
+    where: {
+      email: email,
+    },
+  });
 
-        if (user === null) {
-            return done(null, false, { message: "Invalid credentials" });
-        }
+  if (user === null) {
+    throw new APIException(
+      req,
+      res,
+      "Invalid email or password",
+      401,
+      undefined,
+      new Error("Invalid email or password")
+    );
+  }
 
-        return done(null, user, { message: "Logged in" });
-    })
-);
+  if (!bcrypt.compareSync(password, user.password)) {
+    throw new APIException(
+      req,
+      res,
+      "Invalid email or password",
+      401,
+      undefined,
+      new Error("Invalid email or password")
+    );
+  }
 
-passport.serializeUser((user, done) => {
-    done(null, (user as User).id);
-});
+  const token = jwt.sign({ id: user.id }, settings.jwtSecret, {
+    expiresIn: settings.jwtExpiresIn,
+  });
 
-passport.deserializeUser(async (id, done) => {
-    const prisma = new PrismaClient();
+  redis.client.set(token, "false");
 
-    const user = await prisma.user.findUnique({
-        where: { id: id as string },
-    });
-
-    done(null, user);
-});
-
-route.post("/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json({ message: "Success" });
-});
-
-route.post("/logout", (req, res) => {
-    req.logout((err) => {
-        if (err) {
-            return res.status(500).json({ message: "Error logging out" });
-        }
-        res.json({ message: "Logged out successfully" });
-    });
-});
-
-function isAuthenticated(
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-) {
-    if (req.isAuthenticated()) {
-        return next();
-    }
-    res.status(401).json({ message: "Unauthorized" });
+  res.success("Logged in successfully", { token });
 }
 
-export { route, isAuthenticated };
+function logout(req: express.Request, res: express.Response) {
+  disconnect(req, res);
+  res.status(204).send();
+}
+
+router.post("/login", login);
+router.post("/logout", logout);
+
+export default router;

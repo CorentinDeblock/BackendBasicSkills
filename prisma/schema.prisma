@@ -14,10 +14,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
+enum OpinionType {
+  LIKE
+  DISLIKE
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model Asset {
   id        String   @id @default(uuid())
-  filename  String
-  path      String
+  filename  String   @unique
+  path      String   @unique
   mimetype  String
   size      Int
   createdAt DateTime @default(now())
@@ -29,20 +45,17 @@ model Asset {
 }
 
 model User {
-  id        String    @id @default(uuid())
+  id        String      @id @default(uuid())
   name      String
   password  String
-  email     String    @unique
+  email     String      @unique
   avatar    Asset?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  role      UserRole    @default(USER)
+  status    UserStatus  @default(ACTIVE)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
   articles  Article[]
   opinions  Opinion[]
-}
-
-enum OpinionType {
-  LIKE
-  DISLIKE
 }
 
 model Opinion {

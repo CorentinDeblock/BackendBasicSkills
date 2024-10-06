@@ -1,9 +1,11 @@
 ## BasicSkillBackend
 
 ## Project Description
+
 This project is a backend service built with Node.js and TypeScript, containerized using Docker. It provides [brief description of what your service does].
 
 ## Prerequisites
+
 - Node.js (version X.X.X)
 - Docker
 - Docker Compose
@@ -11,31 +13,35 @@ This project is a backend service built with Node.js and TypeScript, containeriz
 ## Getting Started
 
 Clone the repository:
-   ```
-   git clone https://github.com/CorentinDeblock/BackendBasicSkills
-   cd BasicSkillBackend
-   ```
+
+```
+git clone https://github.com/CorentinDeblock/BackendBasicSkills
+cd BasicSkillBackend
+```
 
 Create a `.env` file with the following variables:
-   ```
-   FRONTEND_PROJECT=C:/Users/coren/Documents/git/BasicSkillFrontend/src/prisma
-   ```
+
+```
+FRONTEND_PROJECT=C:/Users/coren/Documents/git/BasicSkillFrontend/src/prisma
+```
 
 ### Development Setup
 
 Start the development server in development mode:
-   ```
-   npm run docker-dev up
-   ```
+
+```
+npm run docker-dev up
+```
 
 This will start the server with hot-reloading enabled at `http://localhost:3000` (or the port you've specified).
 
 ### Production Setup
 
 Build and start the Docker containers in production mode:
-   ```
-   npm run docker-prod up
-   ```
+
+```
+npm run docker-prod up
+```
 
 The service will be available at `http://localhost:3000` (or the port you've specified).
 
@@ -104,6 +110,7 @@ npm run generate-frontend
 Be aware that the docker container need to be running.
 
 ## Available Scripts
+
 - `npm test`: Runs the tests
 - `npm run dev`: Starts the development server with hot-reloading
 - `npm start`: Starts the production server
@@ -129,7 +136,7 @@ Be aware that the docker container need to be running.
   - `DATABASE_URL`: Set the database url
   - `JWT_SECRET`: Set the secret for the json web token
   - `JWT_EXPIRES_IN`: Set the expiration time for the
-  json web token
+    json web token
   - `LOG_LEVEL`: Set the log level (debug, info, warn, error, fatal)
 - .env
   - `FRONTEND_PROJECT`: Set the path to the frontend project for the prisma type definitions generation
@@ -139,4 +146,5 @@ Be aware that the docker container need to be running.
   - `POSTGRES_PASSWORD`: Set the database password
 
 ## API Documentation
+
 None for now

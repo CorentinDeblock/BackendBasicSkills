@@ -1,8 +1,11 @@
 import { Asset, PrismaClient, User } from "@prisma/client";
 import express from "express";
-import { Uploader } from "../utils/httpUtils";
+import { APIException, Uploader } from "../utils/httpUtils";
 import { deleteFile, getImagePath } from "../utils/fsUtils";
 import logger from "../logger";
+import settings from "../settings";
+import bcrypt from "bcryptjs";
+import { authenticateJWT, disconnect } from "../utils/authUtils";
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -10,153 +13,209 @@ const prisma = new PrismaClient();
 type UserBody = Omit<User, "id">;
 
 interface UserInclude {
-    articles: boolean;
-    opinions: boolean;
-    avatar: boolean;
+  articles: boolean;
+  opinions: boolean;
+  avatar: boolean;
 }
 
-type RequestUserBody = express.Request<{}, {}, UserBody, UserInclude>;
-type RequestUserQuery = express.Request<{ id: string }, {}, {}, UserInclude>;
+type RequestUserBody = express.Request<object, object, UserBody, UserInclude>;
+type RequestUserQuery = express.Request<
+  { id: string },
+  object,
+  object,
+  UserInclude
+>;
 
-function convertQueryToInclude(
-    req: express.Request<any, any, any, UserInclude>
-): UserInclude {
-    return {
-        articles: Boolean(req.query.articles),
-        opinions: Boolean(req.query.opinions),
-        avatar: Boolean(req.query.avatar),
-    };
-}
+type RequestFile = express.Request<{ id: string }, object, object, object>;
 
 async function onCheck(
-    req: express.Request,
-    _: express.Response
-): Promise<Asset | Asset[] | null> {
-    const file = await prisma.asset.findUnique({
-        where: {
-            userId: req.params.id,
-        },
-    });
+  req: express.Request,
+  res: express.Response
+): Promise<Asset | Asset[]> {
+  const file = await prisma.asset.findUnique({
+    where: {
+      userId: req.user!.id,
+    },
+  });
 
-    return file;
+  if (file === null) {
+    throw new APIException(
+      req,
+      res,
+      "Internal server error",
+      500,
+      { id: req.user!.id },
+      undefined
+    );
+  }
+
+  return [file];
 }
 
-async function onUpdate(
-    req: express.Request<{ id: string }, {}, {}>,
-    _: express.Response
-): Promise<Asset> {
-    const file = await prisma.asset.upsert({
-        where: {
-            userId: req.params.id,
-        },
-        update: {
-            filename: req.file!.filename,
-            path: req.file!.path,
-            mimetype: req.file!.mimetype,
-            size: req.file!.size,
-        },
-        create: {
-            filename: req.file!.filename,
-            path: req.file!.path,
-            mimetype: req.file!.mimetype,
-            size: req.file!.size,
-            userId: req.params.id,
-        },
-    });
+async function onUpdate(req: RequestFile, res: express.Response) {
+  const asset = await prisma.asset.upsert({
+    where: {
+      userId: req.params.id,
+    },
+    update: {
+      filename: req.file!.filename,
+      path: req.file!.path,
+      mimetype: req.file!.mimetype,
+      size: req.file!.size,
+    },
+    create: {
+      filename: req.file!.filename,
+      path: req.file!.path,
+      mimetype: req.file!.mimetype,
+      size: req.file!.size,
+      userId: req.params.id,
+    },
+  });
 
-    return file;
+  res.success("Success", asset);
 }
 
-const uploader = new Uploader(
-    "/assets/images/avatars",
-    onCheck.bind(this),
-    onUpdate.bind(this)
+const uploader = new Uploader("/assets/images/avatars", onCheck, onUpdate);
+
+router.post("/:id/upload-avatar/", ...uploader.single("avatar"));
+
+async function getUser(req: RequestUserQuery, res: express.Response) {
+  if (req.params.id === undefined) {
+    throw new APIException(
+      req,
+      res,
+      "User id is required in path. See documentation for more details.",
+      400,
+      { id: req.params.id },
+      undefined
+    );
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: req.params.id },
+    include: req.query,
+  });
+
+  if (user === null) {
+    throw new APIException(
+      req,
+      res,
+      "User not found",
+      404,
+      { id: req.params.id },
+      undefined
+    );
+  }
+
+  res.success("Success", user);
+}
+
+async function updateUser(req: RequestUserBody, res: express.Response) {
+  const user = await prisma.user.update({
+    where: { id: req.user!.id },
+    data: req.body,
+    include: req.query,
+  });
+
+  if (user === null) {
+    throw new APIException(
+      req,
+      res,
+      "User not found",
+      404,
+      { id: req.user!.id },
+      undefined
+    );
+  }
+
+  res.success("Success", user);
+}
+
+async function deleteUser(req: express.Request, res: express.Response) {
+  const id = req.user!.id;
+
+  disconnect(req, res);
+
+  const user = await prisma.user.delete({
+    where: { id },
+    include: {
+      avatar: true,
+    },
+  });
+
+  if (user === null) {
+    throw new APIException(
+      req,
+      res,
+      "User not found",
+      404,
+      { id: req.params.id },
+      undefined
+    );
+  }
+
+  if (user.avatar !== null) {
+    logger.info(`Deleting avatar ${user.avatar.filename}`);
+
+    await deleteFile(getImagePath("avatars", user.avatar.filename));
+  }
+
+  res.status(204).send();
+}
+
+async function createUser(req: RequestUserBody, res: express.Response) {
+  const { email, password, name } = req.body;
+
+  if (email === undefined || password === undefined || name === undefined) {
+    throw new APIException(
+      req,
+      res,
+      "'email', 'password' and 'name' are required, see documentation for more details.",
+      400,
+      undefined,
+      undefined
+    );
+  }
+
+  const user = await prisma.user.create({
+    data: {
+      email,
+      password: bcrypt.hashSync(password, settings.hashSalt),
+      name: name,
+    },
+    include: req.query,
+  });
+
+  if (user === null) {
+    throw new APIException(
+      req,
+      res,
+      "Internal server error",
+      500,
+      undefined,
+      new Error("Internal server error")
+    );
+  }
+
+  res.status(201).success("User created successfully", user);
+}
+
+async function getAllUser(req: express.Request, res: express.Response) {
+  const users = await prisma.user.findMany({
+    include: req.query,
+  });
+
+  res.success("Success", users);
+}
+
+router.get("/", getAllUser);
+router.get("/:id", getUser);
+router.put(
+  "/",
+  authenticateJWT,
+  updateUser as unknown as express.RequestHandler
 );
-
-router.post("/upload-avatar/:id", ...uploader.single("avatar"));
-
-router.get("/:id", async (req: RequestUserQuery, res: express.Response) => {
-    if (req.params.id === undefined) {
-        res.status(400).json({ message: "User id is required" });
-        return;
-    }
-
-    const user = await prisma.user.findUnique({
-        where: { id: req.params.id },
-        include: convertQueryToInclude(req),
-    });
-
-    if (user === null) {
-        res.status(404).json({ message: "User not found" });
-        return;
-    }
-
-    res.json({ message: "Success", data: user });
-});
-
-router.post("/", async (req: RequestUserBody, res: express.Response) => {
-    try {
-        const user = await prisma.user.create({
-            data: req.body,
-            include: convertQueryToInclude(req),
-        });
-
-        if (user === null) {
-            res.status(400).json({ message: "User not created" });
-            return;
-        }
-
-        res.status(201).json({ message: "Success", data: user });
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error" });
-    }
-});
-
-router.put("/:id", async (req: RequestUserQuery, res: express.Response) => {
-    if (req.params.id === undefined) {
-        res.status(400).json({ message: "User id is required" });
-        return;
-    }
-
-    const user = await prisma.user.update({
-        where: { id: req.params.id },
-        data: req.body,
-        include: convertQueryToInclude(req),
-    });
-
-    if (user === null) {
-        res.status(404).json({ message: "User not found" });
-        return;
-    }
-
-    res.json({ message: "Success", data: user });
-});
-
-router.delete("/:id", async (req: RequestUserQuery, res: express.Response) => {
-    if (req.params.id === undefined) {
-        res.status(400).json({ message: "User id is required" });
-        return;
-    }
-
-    const user = await prisma.user.delete({
-        where: { id: req.params.id },
-        include: {
-            avatar: true,
-        },
-    });
-
-    if (user === null) {
-        res.status(404).json({ message: "User not found" });
-        return;
-    }
-
-    if (user.avatar !== null) {
-        logger.info(`Deleting avatar ${user.avatar.filename}`);
-
-        await deleteFile(getImagePath("avatars", user.avatar.filename));
-    }
-
-    res.json({ message: "Success" });
-});
+router.post("/", createUser);
+router.delete("/", authenticateJWT, deleteUser);
 
 export default router;
