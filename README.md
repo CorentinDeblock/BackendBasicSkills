@@ -2,7 +2,7 @@
 
 ## Project Description
 
-This project is a backend service built with Node.js and TypeScript, containerized using Docker. It provides [brief description of what your service does].
+This project is a backend service built with Node.js and TypeScript, containerized using Docker. It provides basic example for a backend. This "project" is for educationnal purpose only and should never be use in production.
 
 ## Prerequisites
 
