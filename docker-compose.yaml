@@ -1,5 +1,6 @@
 services:
   postgres:
+    container_name: postgres
     image: postgres:14
     environment:
       POSTGRES_DB: myapp
@@ -9,6 +10,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+
   redis:
     image: redis
     ports:
@@ -16,6 +18,7 @@ services:
     volumes:
       - ./redis:/data
     command: redis-server --appendonly yes
+
   node:
     build:
       context: .
@@ -36,5 +39,23 @@ services:
     volumes:
       - ./:/app
 
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGHOST: postgres
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_DB: postgres
+      PGADMIN_SERVER_JSON_FILE: /pgadmin4/servers.json
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      - ./docker_pgadmin.json:/pgadmin4/servers.json
+
 volumes:
   postgres-data:
+  pgadmin-data:

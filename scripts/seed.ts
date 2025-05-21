@@ -13,7 +13,7 @@ const prisma = new PrismaClient();
 async function main() {
   logger.info("Seeding database...");
 
-  const assetsPath = path.join(__dirname, "assets");
+  const assetsPath = path.join(process.cwd(), "assets");
 
   if (!fs.existsSync(assetsPath)) {
     throw new Error("Assets folder not found");

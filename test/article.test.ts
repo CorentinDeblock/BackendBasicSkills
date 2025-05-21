@@ -129,7 +129,7 @@ describe("ArticleAPI", () => {
     });
   });
 
-  it.only("Should create a article", async () => {
+  it("Should create a article", async () => {
     const user = await createUser();
     await login(user);
 
@@ -140,7 +140,7 @@ describe("ArticleAPI", () => {
     await deleteUser(user);
   });
 
-  it("Should change article title", async () => {
+  it.only("Should change article title", async () => {
     const user = await createUser();
     const article = await createArticle(user);
 
